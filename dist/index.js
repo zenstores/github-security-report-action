@@ -284650,24 +284650,27 @@ class GitHubCodeScanning {
         this.octokit = octokit;
     }
     async getOpenCodeScanningAlerts(repo) {
-        return await getCodeScanning(this.octokit, repo, 'open');
+        return await getCodeScanning(this.octokit, repo, ['open']);
     }
     async getClosedCodeScanningAlerts(repo) {
-        return await getCodeScanning(this.octokit, repo, 'dismissed');
+        return await getCodeScanning(this.octokit, repo, ['dismissed', 'fixed']);
     }
 }
-async function getCodeScanning(octokit, repo, state) {
-    const params = {
-        owner: repo.owner,
-        repo: repo.repo,
-        // ref: 'refs/pull/1377/merge', for testing
-        state
-    };
-    const alerts = await octokit.paginate('GET /repos/{owner}/{repo}/code-scanning/alerts', params);
+// The alerts API filters on a single state, so each state is fetched separately and combined.
+async function getCodeScanning(octokit, repo, states) {
     const results = new CodeScanningResults();
-    alerts.forEach((alert) => {
-        results.addCodeScanningAlert(new CodeScanningAlert(alert));
-    });
+    for (const state of states) {
+        const params = {
+            owner: repo.owner,
+            repo: repo.repo,
+            // ref: 'refs/pull/1377/merge', for testing
+            state
+        };
+        const alerts = await octokit.paginate('GET /repos/{owner}/{repo}/code-scanning/alerts', params);
+        alerts.forEach((alert) => {
+            results.addCodeScanningAlert(new CodeScanningAlert(alert));
+        });
+    }
     return results;
 }
 //# sourceMappingURL=GitHubCodeScanning.js.map
@@ -323665,7 +323668,7 @@ async function run() {
             sarifReportDirectory: getRequiredInputValue('sarifReportDir'),
             outputDirectory: getRequiredInputValue('outputDir'),
             templating: {
-                directory: external_path_.join(import.meta.dirname, 'templates'),
+                directory: getInput('templateDir') || external_path_.join(import.meta.dirname, 'templates'),
                 name: getRequiredInputValue('template')
             }
         });
