@@ -1,0 +1,16 @@
+[
+  {
+    "ref": "refs/heads/main",
+    "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "analysis_key": "dynamic/github-code-scanning/codeql:analyze",
+    "category": "/language:javascript-typescript",
+    "created_at": "2026-09-01T12:00:00Z",
+    "results_count": 1,
+    "rules_count": 100,
+    "id": 1,
+    "tool": { "name": "CodeQL", "version": "2.23.0" },
+    "deletable": true,
+    "warning": "",
+    "error": ""
+  }
+]

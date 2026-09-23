@@ -35,7 +35,7 @@ export default class DataCollector {
     }
   }
 
-  async getPayload (sarifReportDir: string): Promise<ReportData> {
+  async getPayload (sarifReportDir: string, options: { includeLastScan?: boolean } = {}): Promise<ReportData> {
     const ghDeps = new GitHubDependencies(this.octokit)
     const codeScanning = new GitHubCodeScanning(this.octokit)
     const sarifFinder = new SarifReportFinder(sarifReportDir)
@@ -46,7 +46,8 @@ export default class DataCollector {
       ghDeps.getAllVulnerabilities(this.repo),
       codeScanning.getOpenCodeScanningAlerts(this.repo),
       codeScanning.getClosedCodeScanningAlerts(this.repo),
-      ghDeps.getSbomDependencies(this.repo)
+      ghDeps.getSbomDependencies(this.repo),
+      options.includeLastScan === true ? codeScanning.getLatestAnalysis(this.repo) : null
     ])
 
     const data: CollectedData = {
@@ -56,7 +57,8 @@ export default class DataCollector {
       vulnerabilities: results[2],
       codeScanningOpen: results[3],
       codeScanningClosed: results[4],
-      sbomDependencies: results[5]
+      sbomDependencies: results[5],
+      latestAnalysis: results[6]
     }
 
     return new ReportData(data)

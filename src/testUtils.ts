@@ -88,6 +88,15 @@ export function getOctoKit (): Octokit {
       return { status: 200, data: document.sbom ?? document } as any
     }
 
+    if (path_ === 'GET /repos/{owner}/{repo}') {
+      return { status: 200, data: { default_branch: 'main' } } as any
+    }
+
+    if (path_.includes('/code-scanning/analyses')) {
+      const responseFile = path.join(import.meta.dirname, '..', 'samples', 'mocks', 'rest', parameters.owner as string, parameters.repo as string, 'analyses.json')
+      return { status: 200, data: JSON.parse(fs.readFileSync(responseFile, 'utf8')) } as any
+    }
+
     throw new Error(`Unmocked octokit.request route: ${path_}`)
   })
 

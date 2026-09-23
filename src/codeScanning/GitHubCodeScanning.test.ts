@@ -92,4 +92,36 @@ describe('GitHubDependencies', () => {
       expect(results.getCodeQLScanningAlerts().map(alert => alert.state)).to.deep.equal(['dismissed', 'fixed'])
     })
   })
+
+  describe('getLatestAnalysis()', () => {
+    function stubOctokitWithAnalyses (analyses: object[]): { requests: Array<{ route: string, params: any }>, octokit: any } {
+      const requests: Array<{ route: string, params: any }> = []
+      const octokit = {
+        request: async (route: string, params: any) => {
+          requests.push({ route, params })
+          return route === 'GET /repos/{owner}/{repo}'
+            ? { data: { default_branch: 'develop' } }
+            : { data: analyses }
+        }
+      }
+      return { requests, octokit }
+    }
+
+    it('returns the newest analysis on the default branch', async () => {
+      const { requests, octokit } = stubOctokitWithAnalyses([
+        { created_at: '2026-01-15T09:30:00Z', ref: 'refs/heads/develop', commit_sha: 'abcdef1234' }
+      ])
+
+      const latest = await new GitHubCodeScanning(octokit).getLatestAnalysis(testRepo)
+
+      expect(requests[1].params).to.include({ ref: 'refs/heads/develop', per_page: 1 })
+      expect(latest).to.deep.equal({ created: '2026-01-15T09:30:00Z', ref: 'refs/heads/develop', commitSha: 'abcdef1234' })
+    })
+
+    it('returns null when the default branch has no analyses', async () => {
+      const { octokit } = stubOctokitWithAnalyses([])
+
+      expect(await new GitHubCodeScanning(octokit).getLatestAnalysis(testRepo)).to.equal(null)
+    })
+  })
 })

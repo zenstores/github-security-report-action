@@ -20,6 +20,8 @@ export interface ReportGeneratorConfig {
     directory?: string
     name: string
   }
+
+  includeLastScan?: boolean
 }
 
 export default class ReportGenerator {
@@ -32,7 +34,7 @@ export default class ReportGenerator {
   async run (): Promise<string> {
     const config = this.config
     const collector = new DataCollector(config.octokit, config.repository)
-    const reportData = await collector.getPayload(config.sarifReportDirectory)
+    const reportData = await collector.getPayload(config.sarifReportDirectory, { includeLastScan: config.includeLastScan })
     const reportTemplate = new Template(config.templating.directory)
     const html = reportTemplate.render(reportData.getJSONPayload(), config.templating.name)
     await mkdirP(config.outputDirectory)

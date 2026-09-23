@@ -6,6 +6,7 @@ import type { Endpoints } from '@octokit/types'
 
 import CodeScanningAlert, { type CodeScanningData } from './CodeScanningAlert.ts'
 import CodeScanningResults from './CodeScanningResults.ts'
+import type { LatestAnalysis } from '../templating/ReportTypes.ts'
 
 type listCodeScanningAlertsParameters = Endpoints['GET /repos/{owner}/{repo}/code-scanning/alerts']['parameters']
 
@@ -27,6 +28,22 @@ export default class GitHubCodeScanning {
 
   async getClosedCodeScanningAlerts (repo: Repo): Promise<CodeScanningResults> {
     return await getCodeScanning(this.octokit, repo, ['dismissed', 'fixed'])
+  }
+
+  /**
+   * Returns the most recent code scanning analysis on the repository's default branch, or null
+   * when it has none. Analyses are listed newest first.
+   */
+  async getLatestAnalysis (repo: Repo): Promise<LatestAnalysis | null> {
+    const { data: repository } = await this.octokit.request('GET /repos/{owner}/{repo}', { ...repo })
+    const { data: analyses } = await this.octokit.request('GET /repos/{owner}/{repo}/code-scanning/analyses', {
+      ...repo,
+      ref: `refs/heads/${repository.default_branch}`,
+      per_page: 1
+    })
+
+    const latest = analyses[0]
+    return latest ? { created: latest.created_at, ref: latest.ref, commitSha: latest.commit_sha } : null
   }
 }
 
