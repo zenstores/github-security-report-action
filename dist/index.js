@@ -284657,8 +284657,11 @@ class GitHubCodeScanning {
     }
 }
 // The alerts API filters on a single state, so each state is fetched separately and combined.
+// A dismissed alert whose code was later fixed is returned for both 'dismissed' and 'fixed',
+// so alerts are de-duplicated by number.
 async function getCodeScanning(octokit, repo, states) {
     const results = new CodeScanningResults();
+    const seen = new Set();
     for (const state of states) {
         const params = {
             owner: repo.owner,
@@ -284668,6 +284671,10 @@ async function getCodeScanning(octokit, repo, states) {
         };
         const alerts = await octokit.paginate('GET /repos/{owner}/{repo}/code-scanning/alerts', params);
         alerts.forEach((alert) => {
+            if (seen.has(alert.number)) {
+                return;
+            }
+            seen.add(alert.number);
             results.addCodeScanningAlert(new CodeScanningAlert(alert));
         });
     }
