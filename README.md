@@ -29,6 +29,7 @@ saving it in the specified directory.
 * `repository`: The repository in `<owner>/<repo_name>` form, defaults to `github.repository`
 * `template`: The report template type used to render the report, defaults to `summary`
 * `templateDir`: A directory containing a custom template named by `template`, defaults to the templates bundled with the action
+* `includeLastScan`: Set to `true` to fetch the latest code scanning analysis on the default branch for use in templates, defaults to `false`
 
 
 ## Templates
@@ -53,6 +54,13 @@ To use your own template, point `templateDir` at a directory containing it and s
     token: ${{ secrets.SECURITY_TOKEN }}
     templateDir: ${{ github.workspace }}/.github/security-report
     template: my_summary
+```
+
+With `includeLastScan: true`, templates can also show when the default branch was last scanned. `scanning.lastAnalysis`
+holds the analysis `created` timestamp, `ref` and `commitSha`, or is empty when the branch has no analyses:
+
+```
+{% if scanning.lastAnalysis %}Last scan: {{ scanning.lastAnalysis.created }}{% endif %}
 ```
 
 
@@ -88,6 +96,7 @@ Options:
 * `-o`, `--output-directory`: The directory to output the PDF report to. This will be created if it does not exist. Defaults to the current directory.
 * `--template`: The report template type used to render the report. This defaults to `summary`.
 * `--template-dir`: A directory containing a custom template named by `--template`. Defaults to the bundled templates.
+* `--include-last-scan`: Fetch the latest code scanning analysis on the default branch for use in templates.
 * `--github-api-url`: The GitHub API URL, for GitHub Enterprise Server. Defaults to `https://api.github.com`.
 
 For example:

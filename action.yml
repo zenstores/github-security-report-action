@@ -32,6 +32,11 @@ inputs:
     required: false
     default: ""
 
+  includeLastScan:
+    description: Set to `true` to fetch the latest code scanning analysis on the default branch, available to templates as `scanning.lastAnalysis`.
+    required: false
+    default: "false"
+
 runs:
   using: node24
   main: dist/index.js

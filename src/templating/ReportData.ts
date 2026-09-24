@@ -12,6 +12,7 @@ import type {
   CodeScanningRules, CodeScanResults, CodeScanSummary,
   CollectedData,
   CWECoverage, Dependencies,
+  LatestAnalysis,
   DependencySummary,
   JsonPayload, Manifest,
   Repo,
@@ -47,6 +48,10 @@ export default class ReportData {
 
   get closedDependencyVulnerabilities (): Vulnerability[] {
     return this.vulnerabilities.filter(vuln => vuln.state === 'fixed')
+  }
+
+  get latestAnalysis (): LatestAnalysis | null {
+    return this.data.latestAnalysis ?? null
   }
 
   get openCodeScanResults (): CodeScanningResults {
@@ -94,7 +99,8 @@ export default class ReportData {
       scanning: {
         rules: this.getAppliedCodeScanningRules(),
         cwe: this.getCWECoverage() || {},
-        results: this.getCodeScanSummary()
+        results: this.getCodeScanSummary(),
+        lastAnalysis: this.latestAnalysis
       }
     }
     return data

@@ -25,6 +25,12 @@ export interface Repo {
   repo: string
 }
 
+export interface LatestAnalysis {
+  created: string
+  ref: string
+  commitSha: string
+}
+
 export type CodeScanningRules = Record<string, CodeScanningRule>
 
 export interface CollectedData {
@@ -35,6 +41,7 @@ export interface CollectedData {
   sarifReports: SarifFile[]
   codeScanningOpen: CodeScanningResults
   codeScanningClosed: CodeScanningResults
+  latestAnalysis: LatestAnalysis | null
 }
 
 export interface JsonPayload {
@@ -53,6 +60,7 @@ export interface JsonPayload {
     rules: RuleData[]
     cwe: CWECoverage | Record<string, unknown>
     results: CodeScanSummary
+    lastAnalysis: LatestAnalysis | null
   }
 }
 

@@ -20,6 +20,7 @@ program.option('-s, --sarif-directory <sarifReportDirectory>', 'the SARIF report
 program.option('-o, --output-directory <outputDirectory>', 'output directory for the report', '.')
 program.option('--template <template>', 'report template type used to render the report', 'summary')
 program.option('--template-dir <templateDir>', 'directory containing a custom template named by --template')
+program.option('--include-last-scan', 'fetch the latest code scanning analysis on the default branch')
 program.option('--github-api-url <url>', 'GitHub API URL', 'https://api.github.com')
 
 program.parse(process.argv)
@@ -33,7 +34,8 @@ const reportGenerateConfig: ReportGeneratorConfig = {
   templating: {
     directory: opts.templateDir ? getPath(opts.templateDir) : undefined,
     name: opts.template
-  }
+  },
+  includeLastScan: opts.includeLastScan === true
 }
 
 async function execute (reportGenerateConfig: ReportGeneratorConfig): Promise<void> {
