@@ -284655,6 +284655,20 @@ class GitHubCodeScanning {
     async getClosedCodeScanningAlerts(repo) {
         return await getCodeScanning(this.octokit, repo, ['dismissed', 'fixed']);
     }
+    /**
+     * Returns the most recent code scanning analysis on the repository's default branch, or null
+     * when it has none. Analyses are listed newest first.
+     */
+    async getLatestAnalysis(repo) {
+        const { data: repository } = await this.octokit.request('GET /repos/{owner}/{repo}', { ...repo });
+        const { data: analyses } = await this.octokit.request('GET /repos/{owner}/{repo}/code-scanning/analyses', {
+            ...repo,
+            ref: `refs/heads/${repository.default_branch}`,
+            per_page: 1
+        });
+        const latest = analyses[0];
+        return latest ? { created: latest.created_at, ref: latest.ref, commitSha: latest.commit_sha } : null;
+    }
 }
 // The alerts API filters on a single state, so each state is fetched separately and combined.
 // A dismissed alert whose code was later fixed is returned for both 'dismissed' and 'fixed',
@@ -285235,6 +285249,9 @@ class ReportData {
     get closedDependencyVulnerabilities() {
         return this.vulnerabilities.filter(vuln => vuln.state === 'fixed');
     }
+    get latestAnalysis() {
+        return this.data.latestAnalysis ?? null;
+    }
     get openCodeScanResults() {
         return this.data.codeScanningOpen || {};
     }
@@ -285273,7 +285290,8 @@ class ReportData {
             scanning: {
                 rules: this.getAppliedCodeScanningRules(),
                 cwe: this.getCWECoverage() || {},
-                results: this.getCodeScanSummary()
+                results: this.getCodeScanSummary(),
+                lastAnalysis: this.latestAnalysis
             }
         };
         return data;
@@ -285497,7 +285515,7 @@ class DataCollector {
             repo: parts[1]
         };
     }
-    async getPayload(sarifReportDir) {
+    async getPayload(sarifReportDir, options = {}) {
         const ghDeps = new GitHubDependencies(this.octokit);
         const codeScanning = new GitHubCodeScanning(this.octokit);
         const sarifFinder = new SarifReportFinder(sarifReportDir);
@@ -285507,7 +285525,8 @@ class DataCollector {
             ghDeps.getAllVulnerabilities(this.repo),
             codeScanning.getOpenCodeScanningAlerts(this.repo),
             codeScanning.getClosedCodeScanningAlerts(this.repo),
-            ghDeps.getSbomDependencies(this.repo)
+            ghDeps.getSbomDependencies(this.repo),
+            options.includeLastScan === true ? codeScanning.getLatestAnalysis(this.repo) : null
         ]);
         const data = {
             github: this.repo,
@@ -285516,7 +285535,8 @@ class DataCollector {
             vulnerabilities: results[2],
             codeScanningOpen: results[3],
             codeScanningClosed: results[4],
-            sbomDependencies: results[5]
+            sbomDependencies: results[5],
+            latestAnalysis: results[6]
         };
         return new ReportData(data);
     }
@@ -316399,7 +316419,7 @@ class ReportGenerator {
     async run() {
         const config = this.config;
         const collector = new DataCollector(config.octokit, config.repository);
-        const reportData = await collector.getPayload(config.sarifReportDirectory);
+        const reportData = await collector.getPayload(config.sarifReportDirectory, { includeLastScan: config.includeLastScan });
         const reportTemplate = new Template(config.templating.directory);
         const html = reportTemplate.render(reportData.getJSONPayload(), config.templating.name);
         await mkdirP(config.outputDirectory);
@@ -323677,7 +323697,8 @@ async function run() {
             templating: {
                 directory: getInput('templateDir') || external_path_.join(import.meta.dirname, 'templates'),
                 name: getRequiredInputValue('template')
-            }
+            },
+            includeLastScan: getInput('includeLastScan') === 'true'
         });
         const file = await generator.run();
         console.log(file);
